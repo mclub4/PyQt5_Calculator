@@ -1,0 +1,144 @@
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import *
+from Func_Data import *
+from math import pi
+from Function2 import functionMap, functionList, numPadList, constantList, otherList, operatorList, otherMap
+
+class Button(QToolButton):
+
+def __init__(self, text, callback):
+super().__init__()
+self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+self.setText(text)
+self.clicked.connect(callback)
+
+def sizeHint(self):
+size = super(Button, self).sizeHint()
+size.setHeight(size.height() + 20)
+size.setWidth(max(size.width(), size.height()))
+return size
+
+class Calculator(QWidget):
+def __init__(self):
+super().__init__()
+# Display Screen
+self.display = QLineEdit()
+self.log = QTextEdit()
+self.log.setReadOnly(True)
+self.log.setAlignment(Qt.AlignLeft)
+self.display.setReadOnly(True)
+self.log.setFontItalic(True)
+self.display.setAlignment(Qt.AlignRight)
+self.display.setMaxLength(20)
+self.explain = QLabel('[ 기능성 버튼 ]')
+
+# Button + Layout
+mainLayout = QGridLayout()
+mainLayout.setSizeConstraint(QLayout.SetFixedSize)
+
+numLayout = QGridLayout()
+opLayout = QGridLayout()
+constLayout = QGridLayout()
+funcLayout = QGridLayout()
+
+buttonGroups = {
+'num': {'buttons': numPadList, 'layout': numLayout, 'columns': 3},
+'op': {'buttons': operatorList, 'layout': opLayout, 'columns': 3},
+'constants': {'buttons': constantList, 'layout': constLayout, 'columns': 1},
+'functions': {'buttons': functionList, 'layout': funcLayout, 'columns': 1},
+}
+
+for label in buttonGroups.keys():
+r = 0
+c = 0
+buttonPad = buttonGroups[label]
+for btnText in buttonPad['buttons']:
+button = Button(btnText, self.buttonClicked)
+if(btnText == '='):
+buttonPad['layout'].addWidget(button, r, c, 1, 3)
+button.setStyleSheet("background-color: orange")
+if(btnText == 'AC'):
+buttonPad['layout'].addWidget(button, r, c, 1, 2)
+button.setStyleSheet("background-color: red")
+else:
+buttonPad['layout'].addWidget(button, r, c)
+c += 1
+if c >= buttonPad['columns']:
+c = 0;
+r += 1
+
+
+#SetLayout
+mainLayout.addWidget(self.log,0,0,1,2)
+mainLayout.addWidget(self.display, 1, 0, 1, 2)
+mainLayout.addLayout(numLayout, 2, 0)
+mainLayout.addLayout(opLayout, 2, 1)
+mainLayout.addWidget(self.explain, 3, 0)
+mainLayout.addLayout(constLayout, 4, 0)
+mainLayout.addLayout(funcLayout, 4, 1)
+self.setLayout(mainLayout)
+self.setWindowTitle("계산기")
+
+#ButtonClicked Event
+def buttonClicked(self):
+if self.display.text() == "연산 오류!":
+self.display.setText("")
+button = self.sender()
+key = button.text()
+text = self.display.text()
+if key == '=':
+try:
+result = str(eval(text))
+except:
+self.display.setText("연산 오류!")
+else:
+self.display.setText(result)
+logtext = "<html><b>" + text + " = " + result + "</b></html>"
+self.log.append(logtext)
+
+elif key == 'C':
+arr = self.display.text()
+self.display.setText(arr[0:-1])
+elif key == 'AC':
+self.display.clear()
+elif key in constantList:
+n = ConstantData(key)
+if(n == pi):
+self.display.setText(self.display.text() + n)
+else:
+self.display.setText(n)
+elif key in functionList:
+n = self.display.text()
+value = functionMap[functionList.index(key)][1](n)
+self.display.setText(str(value))
+elif key in otherList:
+try:
+equation = eval(text)
+except:
+self.display.setText("연산 오류!")
+else:
+n = self.display.text()
+value = otherMap[otherList.index(key)][1](n)
+self.display.setText(str(value))
+else:
+self.display.setText(self.display.text() + key)
+
+
+# ESC Quit
+def keyPressEvent(self, e):
+if e.key() == Qt.Key_Escape:
+self.close()
+
+def closeEvent(self, event):
+close = QMessageBox.question(self, "종료", "정말로 끄실건가요? ㅠ", QMessageBox.Yes | QMessageBox.No)
+if close == QMessageBox.Yes:
+event.accept()
+else:
+event.ignore()
+
+if __name__ == '__main__':
+import sys
+app = QApplication(sys.argv)
+calc = Calculator()
+calc.show()
+sys.exit(app.exec_())
